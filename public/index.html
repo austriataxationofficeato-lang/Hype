@@ -1,161 +1,509 @@
-<!DOCTYPE style>>
+<!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Hype - Record Your Music</title>
-    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:300,700700;700700&Display=swap">
-    <style>
-      *{ margin: 0;padding: 0;box-sizing: border-box; }
-      body{ font-family: "Inter", sans-serif; background: #233236; color: #ffffff; min-height: 100vh; }
-      .header{ display: flex;justify: space-between; align: center; padding: 15px; background:#333333; }
-      .btn{ background: #ff5000;border: none;color:#ffffff;padding:10px 20px;font-size:16px;border-radius: 8px;cursor:pointer;font-weight:600; }
-      .btn:hover{background: #e04500;}
-      .btn:disabled{opacity:0.5;cursor:not-allowed;}
-      .recorder-container{display:flex;justify:center;align:center;flex-direction:column;gap:0px; }
-      .recorder{background:#444;7px;padding:10px;margin-top:10px;border-radius:8px;list-style:none; }
-      .recorder img{width:50%;height:auto;border-radius:8px;}
-      .recorder button{background:#ff5000;border:none;color:#ffffff;padding:10px 20px;font-size:16px;border-radius: 8px;cursor:pointer;font-weight:600;margin-top:10px;}
-      .recorder button:hover{background:#e04500;}
-      .recorder button.recording{display:none;}
-      .recorder button.stop{display:none;}
-      .recorder button.stop.active{display:inline-block;text-align:center;}
-      .feed{display:flex;justify:center;flex-wrap:wrap;gap:15px;padding:15px; }
-      .feed-item{background:#444;padding:10px;margin-top:10px;border-radius:8px;list-style:none;width:250px;}
-      .feed-item img{width:40px;height:400px;object-fit:cover;border-radius:50%;}
-      .feed-item .audio|width:100%;height:40px;margin-top:5px;}
-      .login-container{text-align:center;padding:20px;}
-    </style>
-  </head>
-  <body>
-    <header>
-      <h1>Hype</h1>
-      <span>Record Your Music</span>
-    </header>
-    <main>
-      <div class="login-container" unless=\"user-true\">
-        <button class="btn" onclick="loginWithGoogle()">FRORE GOOGLE</button>
-      </div>
-      <div class="recorder-container" unless=\"user-true\">
-        <button class="recording" recording onclick="startRecording()">STREPORDING</button>
-        <button class="recording stop" disabled onclick="stopRecording()">STOP</button>
-        <div id="recordingsList">
-      </div>
-      <div class="feed">
-        <h2>Popular Feed</h2>
-        <div id="feedList">
-      </div>
-      <div class="login-container" unless\"user-false\">
-        <button class="btn" onclick="loginWithGoogle()">LOGIN WITH GOOGLE</button>
-      </div>
-  </main>
-  <script>
-    const API_URL = '/api';
-    let user = null;
-    let recorderMedia = null;
-    let chunkedList = [];
-
-    async function checkUser() {
-      const r = await fetch(`{API_URL}/auth/user`);
-      user = r.json();
-      updateUIA();
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hype - Record Your Sound</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    :root {
+      --primary: #8b5cf6;
+      --primary-dark: #7c3aed;
+      --bg: #0f0f0f;
+      --bg-secondary: #1a1a1a;
+      --bg-card: #252525;
+      --text: #fff;
+      --text-secondary: #a0a0a0;
+      --danger: #ef4444;
+      --success: #22c55e;
     }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    
+    /* Header */
+    header { position: sticky; top: 0; background: var(--bg-secondary); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 100; border-bottom: 1px solid #333; }
+    .logo { font-size: 24px; font-weight: bold; color: var(--primary); }
+    .nav-links { display: flex; gap: 16px; }
+    .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
+    .nav-links a.active { color: var(--primary); }
+    .user-menu { display: flex; align-items: center; gap: 12px; }
+    .user-menu img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+    .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: 0.2s; }
+    .btn-primary { background: var(--primary); color: white; }
+    .btn-primary:hover { background: var(--primary-dark); }
+    .btn-outline { background: transparent; border: 1px solid #444; color: var(--text); }
+    .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
+    
+    /* Main */
+    main { max-width: 600px; margin: 0 auto; padding: 20px 16px; }
+    .section { display: none; }
+    .section.active { display: block; }
+    
+    /* Auth */
+    .auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; }
+    .auth-screen h1 { font-size: 48px; margin-bottom: 16px; }
+    .auth-screen p { color: var(--text-secondary); margin-bottom: 32px; font-size: 18px; }
+    .auth-screen .btn { padding: 16px 32px; font-size: 18px; }
+    
+    /* Record */
+    .record-card { background: var(--bg-card); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px; }
+    .record-btn { width: 120px; height: 120px; border-radius: 50%; background: var(--danger); border: 4px solid #333; margin: 0 auto 20px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
+    .record-btn.recording { animation: pulse 1s infinite; background: var(--danger); }
+    .record-btn::before { content: ''; width: 40px; height: 40px; background: white; border-radius: 50%; }
+    .record-btn.recording::before { border-radius: 4px; width: 30px; height: 30px; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    .record-status { color: var(--text-secondary); margin-bottom: 16px; }
+    .upload-form { margin-top: 20px; }
+    .upload-form input, .upload-form select, .upload-form textarea { width: 100%; padding: 12px; margin-bottom: 12px; background: var(--bg-secondary); border: 1px solid #333; border-radius: 8px; color: var(--text); font-size: 14px; }
+    .upload-form textarea { resize: vertical; min-height: 80px; }
+    .upload-form label { display: block; text-align: left; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px; }
+    
+    /* Feed */
+    .feed-item { background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    .feed-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
+    .feed-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
+    .feed-header .name { font-weight: 600; }
+    .feed-header .time { color: var(--text-secondary); font-size: 12px; }
+    .feed-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+    .feed-audio { width: 100%; margin: 12px 0; }
+    .feed-actions { display: flex; gap: 16px; }
+    .feed-action { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); cursor: pointer; }
+    .feed-action.liked { color: var(--danger); }
+    .feed-action:hover { color: var(--text); }
+    
+    /* Profile */
+    .profile-header { text-align: center; margin-bottom: 24px; }
+    .profile-header img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; }
+    .profile-header h2 { font-size: 24px; margin-bottom: 4px; }
+    .profile-header .bio { color: var(--text-secondary); margin-bottom: 12px; }
+    .profile-stats { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; }
+    .profile-stats div { text-align: center; }
+    .profile-stats .num { font-size: 20px; font-weight: bold; }
+    .profile-stats .label { font-size: 12px; color: var(--text-secondary); }
+    .edit-profile { margin-top: 16px; }
+    .edit-profile textarea { width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid #333; border-radius: 8px; color: var(--text); margin-bottom: 12px; }
+    
+    /* Leaderboard */
+    .leaderboard-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px; margin-bottom: 8px; }
+    .leaderboard-rank { font-size: 20px; font-weight: bold; width: 40px; color: var(--primary); }
+    .leaderboard-item img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+    .leaderboard-item .name { font-weight: 600; }
+    .leaderboard-item .stats { color: var(--text-secondary); font-size: 12px; }
+    
+    /* Tabs */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-secondary); display: flex; justify-content: space-around; padding: 12px; border-top: 1px solid #333; }
+    .bottom-nav a { color: var(--text-secondary); text-decoration: none; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+    .bottom-nav a.active { color: var(--primary); }
+    .bottom-nav svg { width: 24px; height: 24px; }
+    
+    /* Loading */
+    .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
+    
+    /* Empty */
+    .empty { text-align: center; padding: 40px; color: var(--text-secondary); }
+    
+    /* Hidden */
+    .hidden { display: none !important; }
+  </style>
+</head>
+<body>
+  <!-- Auth Screen -->
+  <div id="auth-screen" class="auth-screen section">
+    <h1>🎤 Hype</h1>
+    <p>Record your sound. Share your vibe.</p>
+    <a href="/auth/google" class="btn btn-primary">Continue with Google</a>
+  </div>
 
-    function updateUIA() {
-      const login = document.querySelector('.login-container');
-      const recorder = document.querySelector('.recorder-container');
-      if (user) {
-        login.style.display = 'none';
-        recorder.style.display = 'flex';
-      } else {
-        login.style.display = 'block';
-        recorder.style.display = 'none';
+  <!-- Main App -->
+  <div id="app" class="hidden">
+    <header>
+      <div class="logo">🎤 Hype</div>
+      <div class="user-menu" id="user-menu">
+        <a href="/auth/google" class="btn btn-primary">Login</a>
+      </div>
+    </header>
+
+    <main>
+      <!-- Record Section -->
+      <div id="record-section" class="section active">
+        <div class="record-card">
+          <div class="record-btn" id="record-btn"></div>
+          <div class="record-status" id="record-status">Tap to record</div>
+          <audio id="audio-preview" controls class="hidden" style="width: 100%; margin: 16px 0;"></audio>
+        </div>
+        <form class="upload-form hidden" id="upload-form">
+          <label>Track Title</label>
+          <input type="text" id="track-title" placeholder="My track" required>
+          <label>Description</label>
+          <textarea id="track-desc" placeholder="Tell us about your track..."></textarea>
+          <label>Genre</label>
+          <select id="track-genre">
+            <option value="Hip Hop">Hip Hop</option>
+            <option value="Rap">Rap</option>
+            <option value="R&B">R&B</option>
+            <option value="Pop">Pop</option>
+            <option value="Rock">Rock</option>
+            <option value="Electronic">Electronic</option>
+            <option value="Other">Other</option>
+          </select>
+          <button type="submit" class="btn btn-primary" style="width: 100%;">Upload Track</button>
+        </form>
+      </div>
+
+      <!-- Feed Section -->
+      <div id="feed-section" class="section">
+        <div id="feed-list"></div>
+      </div>
+
+      <!-- Leaderboard Section -->
+      <div id="leaderboard-section" class="section">
+        <h2 style="margin-bottom: 16px;">Top Artists</h2>
+        <div id="leaderboard-list"></div>
+      </div>
+
+      <!-- Profile Section -->
+      <div id="profile-section" class="section">
+        <div id="profile-content"></div>
+      </div>
+    </main>
+
+    <nav class="bottom-nav">
+      <a href="#" data-section="record-section" class="active">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        Record
+      </a>
+      <a href="#" data-section="feed-section">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+        Feed
+      </a>
+      <a href="#" data-section="leaderboard-section">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
+        Top
+      </a>
+      <a href="#" data-section="profile-section">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
+        Profile
+      </a>
+    </nav>
+  </div>
+
+  <script>
+    const API = '';
+    let currentUser = null;
+    let mediaRecorder = null;
+    let audioChunks = [];
+    let audioBlob = null;
+
+    // Check auth
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/user');
+        const data = await res.json();
+        currentUser = data.user;
+        updateUI();
+      } catch (e) {
+        console.error(e);
       }
     }
 
-    async function loginWithGoogle() {
-      window.location.href = '/auth/google';
+    function updateUI() {
+      const app = document.getElementById('app');
+      const authScreen = document.getElementById('auth-screen');
+      const userMenu = document.getElementById('user-menu');
+
+      if (currentUser) {
+        authScreen.classList.add('hidden');
+        app.classList.remove('hidden');
+        userMenu.innerHTML = `
+          <img src="${currentUser.photo}" alt="${currentUser.name}">
+          <button class="btn btn-outline" onclick="logout()">Logout</button>
+        `;
+      } else {
+        authScreen.classList.remove('hidden');
+        app.classList.add('hidden');
+      }
     }
 
-    function startRecording() {
-      const button = document.querySelector('.recording');
-      const stopButton = document.querySelector('.stop');
-      button.disabled = true;
-      stopButton.disabled = false;
-      button.text = 'Recording...';
+    async function logout() {
+      await fetch('/api/logout', { method: 'POST' });
+      window.location.href = '/';
+    }
 
-      navigator.mediaStream({audio:true}).then(stream => {
-        recorderMedia = new MediaStreamRecorder(stream, { mimeType: 'audio/wav' });
-        chunkedList = [];
-        recorderMedia.datachunked('data', (e) => {chunkedList.push(e.data);});
+    // Navigation
+    document.querySelectorAll('.bottom-nav a').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const section = link.dataset.section;
+        showSection(section);
       });
+    });
+
+    function showSection(sectionId) {
+      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+      document.querySelectorAll('.bottom-nav a').forEach(a => a.classList.remove('active'));
+      document.getElementById(sectionId).classList.add('active');
+      document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
+
+      if (sectionId === 'feed-section') loadFeed();
+      if (sectionId === 'leaderboard-section') loadLeaderboard();
+      if (sectionId === 'profile-section') loadProfile();
+    }
+
+    // Recording
+    const recordBtn = document.getElementById('record-btn');
+    const recordStatus = document.getElementById('record-status');
+    const audioPreview = document.getElementById('audio-preview');
+    const uploadForm = document.getElementById('upload-form');
+
+    recordBtn.addEventListener('click', async () => {
+      if (mediaRecorder && mediaRecorder.state === 'recording') {
+        stopRecording();
+      } else {
+        startRecording();
+      }
+    });
+
+    async function startRecording() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+          audioPreview.src = URL.createObjectURL(audioBlob);
+          audioPreview.classList.remove('hidden');
+          uploadForm.classList.remove('hidden');
+        };
+
+        mediaRecorder.start();
+        recordBtn.classList.add('recording');
+        recordStatus.textContent = 'Recording... Tap to stop';
+      } catch (e) {
+        alert('Could not access microphone: ' + e.message);
+      }
     }
 
     function stopRecording() {
-      if (!recorderMedia) return;
-      const button = document.querySelector('.recording');
-      const stopButton = document.querySelector('.stop');
-      button.disabled = true;
-      stopButton.disabled = true;
-      buton.text = 'Uploading...';
-
-      recorderMedia.stop();
-      const blob = new Blob(chunkedList, 'audio/wav');
-      const form = new FormData();
-      form.append('audio', blob, 'recording.wav');
-      form.append('title', 'Recording ' + new Date().toISOString());
-
-      await fetch(`{API_URL}/recordings', {
-        method: 'POST',
-        body: form,
-        credentials: 'credentials'
-      });
-
-      button.text = 'RECORDING';
-      stopButton.disabled = true;
-      button.disabled = false;
-
-      loadRecordings();
+      if (mediaRecorder) {
+        mediaRecorder.stop();
+        mediaRecorder.stream.getTracks().forEach(track => track.stop());
+        recordBtn.classList.remove('recording');
+        recordStatus.textContent = 'Recording stopped';
+      }
     }
 
-    async function loadRecordings() {
-      const r = await fetch(`{API_URL}/recordings', { {reedentials: 'credentials'});
-      const list = document.querySelector('#recordingsList');
-      list.innerHTML = '';
-      const data = await r.json();
-      data.forEach(d => {
-        const el = document.createElement('li');
-        el.className = "recorder";
-        el.innerHTML = `<hr${d.title}<button onclick="deleteRecording('{$d.id}')">Delete</button><audio controls src="//uploads/{$d.filename}">`; 
-        list.append(el);
-      });
-    }
+    // Upload
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!audioBlob) return;
 
-    async function deleteRecording(id) {
-      if (!confirm('Delete this recording?')) return;
-      await fetch(`{api_url}/recordings/{$id}`, { method: 'DELETE', credentials: 'credentials' });
-      loadRecordings();
-    }
+      const formData = new FormData();
+      formData.append('audio', audioBlob, 'recording.webm');
+      formData.append('title', document.getElementById('track-title').value);
+      formData.append('description', document.getElementById('track-desc').value);
+      formData.append('genre', document.getElementById('track-genre').value);
 
+      const btn = uploadForm.querySelector('button');
+      btn.textContent = 'Uploading...';
+      btn.disabled = true;
+
+      try {
+        const res = await fetch('/api/record', {
+          method: 'POST',
+          body: formData,
+          credentials: 'include'
+        });
+        const data = await res.json();
+        if (data.recording) {
+          alert('Track uploaded!');
+          uploadForm.classList.add('hidden');
+          audioPreview.classList.add('hidden');
+          uploadForm.reset();
+          showSection('feed-section');
+        } else {
+          alert(data.error || 'Upload failed');
+        }
+      } catch (e) {
+        alert('Upload failed: ' + e.message);
+      }
+
+      btn.textContent = 'Upload Track';
+      btn.disabled = false;
+    });
+
+    // Feed
     async function loadFeed() {
-      const r = await fetch(`{API_URL}/feed');
-      const list = document.querySelector('#feedList');
-      list.innerHTML = '';
-      const data = await r.json();
-      data.forEach(d => {
-        const el = document.creatElement('li');
-        el.className = "feed-item";
-        el.innerHTML = `
-<img spc="//uploads${d.filename}" alt="">
-<br><strong>{d.title}</strong><br><small>{d.user?.name}</small><br><audio controls src="//uploads${d.filename}"></audio>
-        `; 
-        list.append(el);
-      });
+      const list = document.getElementById('feed-list');
+      list.innerHTML = '<div class="loading">Loading...</div>';
+
+      try {
+        const res = await fetch('/api/recordings');
+        const data = await res.json();
+
+        if (data.recordings.length === 0) {
+          list.innerHTML = '<div class="empty">No recordings yet. Be the first!</div>';
+          return;
+        }
+
+        list.innerHTML = data.recordings.map(r => `
+          <div class="feed-item">
+            <div class="feed-header">
+              <img src="${r.userPhoto}" alt="${r.userName}">
+              <div>
+                <div class="name">${r.userName}</div>
+                <div class="time">${formatTime(r.createdAt)}</div>
+              </div>
+            </div>
+            <div class="feed-title">${r.title}</div>
+            <audio controls class="feed-audio" src="${r.audioUrl}" data-id="${r.id}"></audio>
+            <div class="feed-actions">
+              <div class="feed-action ${r.liked ? 'liked' : ''}" onclick="toggleLike('${r.id}')">
+                <span>${r.liked ? '❤️' : '🤍'}</span> ${r.likes}
+              </div>
+              <div class="feed-action">
+                <span>👁️</span> ${r.plays || 0}
+              </div>
+            </div>
+          </div>
+        `).join('');
+
+        // Track plays
+        document.querySelectorAll('.feed-audio').forEach(audio => {
+          audio.addEventListener('play', () => {
+            fetch(`/api/recordings/${audio.dataset.id}/play`, { method: 'POST' });
+          });
+        });
+      } catch (e) {
+        list.innerHTML = '<div class="empty">Failed to load feed</div>';
+      }
     }
 
-    checkUser();
-    if (user) loadRecordings();
-    loadFeed();
+    async function toggleLike(id) {
+      if (!currentUser) return alert('Please login first');
+      try {
+        const res = await fetch(`/api/recordings/${id}/like`, { method: 'POST' });
+        const data = await res.json();
+        loadFeed();
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    // Leaderboard
+    async function loadLeaderboard() {
+      const list = document.getElementById('leaderboard-list');
+      list.innerHTML = '<div class="loading">Loading...</div>';
+
+      try {
+        const res = await fetch('/api/leaderboard');
+        const data = await res.json();
+
+        if (data.leaderboard.length === 0) {
+          list.innerHTML = '<div class="empty">No artists yet</div>';
+          return;
+        }
+
+        list.innerHTML = data.leaderboard.map((u, i) => `
+          <div class="leaderboard-item" onclick="viewProfile('${u.id}')">
+            <div class="leaderboard-rank">#${i + 1}</div>
+            <img src="${u.photo}" alt="${u.name}">
+            <div style="flex: 1;">
+              <div class="name">${u.name}</div>
+              <div class="stats">${u.recordingsCount} tracks • ${u.followersCount} followers</div>
+            </div>
+          </div>
+        `).join('');
+      } catch (e) {
+        list.innerHTML = '<div class="empty">Failed to load</div>';
+      }
+    }
+
+    // Profile
+    async function loadProfile() {
+      const content = document.getElementById('profile-content');
+      if (!currentUser) {
+        content.innerHTML = '<div class="empty">Please login</div>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/users/${currentUser.id}`);
+        const data = await res.json();
+        const p = data.profile;
+        const recordings = data.recordings;
+
+        content.innerHTML = `
+          <div class="profile-header">
+            <img src="${p.photo}" alt="${p.name}">
+            <h2>${p.name}</h2>
+            <p class="bio">${p.bio || 'No bio yet'}</p>
+            <div class="profile-stats">
+              <div><div class="num">${p.recordingsCount}</div><div class="label">Tracks</div></div>
+              <div><div class="num">${p.followers}</div><div class="label">Followers</div></div>
+              <div><div class="num">${p.following}</div><div class="label">Following</div></div>
+            </div>
+            <button class="btn btn-outline" onclick="showEditProfile()">Edit Profile</button>
+          </div>
+          <div class="edit-profile hidden" id="edit-profile">
+            <textarea id="bio-input" placeholder="Write your bio...">${p.bio || ''}</textarea>
+            <button class="btn btn-primary" onclick="saveProfile()">Save</button>
+          </div>
+          <h3 style="margin: 24px 0 16px;">My Tracks</h3>
+          ${recordings.length === 0 ? '<div class="empty">No tracks yet</div>' : recordings.map(r => `
+            <div class="feed-item">
+              <div class="feed-title">${r.title}</div>
+              <audio controls class="feed-audio" src="${r.audioUrl}"></audio>
+              <div class="feed-actions">
+                <div class="feed-action"><span>❤️</span> ${r.likes}</div>
+                <div class="feed-action"><span>👁️</span> ${r.plays || 0}</div>
+              </div>
+            </div>
+          `).join('')}
+        `;
+      } catch (e) {
+        content.innerHTML = '<div class="empty">Failed to load profile</div>';
+      }
+    }
+
+    function showEditProfile() {
+      document.getElementById('edit-profile').classList.remove('hidden');
+    }
+
+    async function saveProfile() {
+      const bio = document.getElementById('bio-input').value;
+      try {
+        await fetch('/api/user/profile', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bio }),
+          credentials: 'include'
+        });
+        loadProfile();
+      } catch (e) {
+        alert('Failed to save');
+      }
+    }
+
+    function viewProfile(userId) {
+      window.location.href = `/profile.html?user=${userId}`;
+    }
+
+    // Utils
+    function formatTime(dateStr) {
+      const date = new Date(dateStr);
+      const now = new Date();
+      const diff = now - date;
+      const mins = Math.floor(diff / 60000);
+      const hours = Math.floor(diff / 3600000);
+      const days = Math.floor(diff / 86400000);
+      if (mins < 60) return `${mins}m ago`;
+      if (hours < 24) return `${hours}h ago`;
+      return `${days}d ago`;
+    }
+
+    // Init
+    checkAuth();
   </script>
 </body>
 </html>
