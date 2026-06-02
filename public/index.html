@@ -4,184 +4,221 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Hype - Record Your Sound</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <style>
     * { margin: 0; padding: 0; box-sizing: border-box; }
     :root {
-      --primary: #8b5cf6;
-      --primary-dark: #7c3aed;
+      --primary: #6366f1;
+      --primary-dark: #4f46e5;
       --bg: #0f0f0f;
       --bg-secondary: #1a1a1a;
-      --bg-card: #252525;
-      --text: #fff;
-      --text-secondary: #a0a0a0;
-      --danger: #ef4444;
+      --bg-tertiary: #252525;
+      --text: #ffffff;
+      --text-secondary: #a1a1aa;
+      --border: #2d2d2d;
       --success: #22c55e;
+      --error: #ef4444;
     }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
+    body { font-family: 'Inter', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; }
     
     /* Header */
-    header { position: sticky; top: 0; background: var(--bg-secondary); padding: 12px 16px; display: flex; justify-content: space-between; align-items: center; z-index: 100; border-bottom: 1px solid #333; }
-    .logo { font-size: 24px; font-weight: bold; color: var(--primary); }
-    .nav-links { display: flex; gap: 16px; }
-    .nav-links a { color: var(--text-secondary); text-decoration: none; font-size: 14px; }
-    .nav-links a.active { color: var(--primary); }
+    .header { position: fixed; top: 0; left: 0; right: 0; height: 60px; background: var(--bg-secondary); border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 100; }
+    .logo { font-size: 24px; font-weight: 800; color: var(--primary); }
+    .nav { display: flex; gap: 20px; }
+    .nav a { color: var(--text-secondary); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+    .nav a:hover, .nav a.active { color: var(--text); }
     .user-menu { display: flex; align-items: center; gap: 12px; }
-    .user-menu img { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
-    .btn { padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer; font-size: 14px; font-weight: 500; transition: 0.2s; }
+    .user-avatar { width: 36px; height: 36px; border-radius: 50%; object-fit: cover; }
+    .btn { padding: 10px 20px; border-radius: 8px; font-weight: 600; cursor: pointer; border: none; transition: all 0.2s; }
     .btn-primary { background: var(--primary); color: white; }
     .btn-primary:hover { background: var(--primary-dark); }
-    .btn-outline { background: transparent; border: 1px solid #444; color: var(--text); }
+    .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
     .btn-outline:hover { border-color: var(--primary); color: var(--primary); }
     
     /* Main */
-    main { max-width: 600px; margin: 0 auto; padding: 20px 16px; }
-    .section { display: none; }
-    .section.active { display: block; }
+    .main { padding-top: 80px; padding-bottom: 80px; max-width: 800px; margin: 0 auto; padding-left: 20px; padding-right: 20px; }
     
     /* Auth */
-    .auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 80vh; text-align: center; }
-    .auth-screen h1 { font-size: 48px; margin-bottom: 16px; }
-    .auth-screen p { color: var(--text-secondary); margin-bottom: 32px; font-size: 18px; }
-    .auth-screen .btn { padding: 16px 32px; font-size: 18px; }
-    
-    /* Record */
-    .record-card { background: var(--bg-card); border-radius: 16px; padding: 24px; text-align: center; margin-bottom: 24px; }
-    .record-btn { width: 120px; height: 120px; border-radius: 50%; background: var(--danger); border: 4px solid #333; margin: 0 auto 20px; cursor: pointer; transition: 0.2s; display: flex; align-items: center; justify-content: center; }
-    .record-btn.recording { animation: pulse 1s infinite; background: var(--danger); }
-    .record-btn::before { content: ''; width: 40px; height: 40px; background: white; border-radius: 50%; }
-    .record-btn.recording::before { border-radius: 4px; width: 30px; height: 30px; }
-    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
-    .record-status { color: var(--text-secondary); margin-bottom: 16px; }
-    .upload-form { margin-top: 20px; }
-    .upload-form input, .upload-form select, .upload-form textarea { width: 100%; padding: 12px; margin-bottom: 12px; background: var(--bg-secondary); border: 1px solid #333; border-radius: 8px; color: var(--text); font-size: 14px; }
-    .upload-form textarea { resize: vertical; min-height: 80px; }
-    .upload-form label { display: block; text-align: left; margin-bottom: 8px; color: var(--text-secondary); font-size: 14px; }
+    .auth-screen { display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; text-align: center; padding: 20px; }
+    .auth-screen h1 { font-size: 48px; font-weight: 800; margin-bottom: 16px; }
+    .auth-screen p { color: var(--text-secondary); font-size: 18px; margin-bottom: 32px; }
+    .auth-screen .btn { font-size: 18px; padding: 16px 32px; }
     
     /* Feed */
-    .feed-item { background: var(--bg-card); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
-    .feed-header { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; }
-    .feed-header img { width: 40px; height: 40px; border-radius: 50%; object-fit: cover; }
-    .feed-header .name { font-weight: 600; }
-    .feed-header .time { color: var(--text-secondary); font-size: 12px; }
-    .feed-title { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
-    .feed-audio { width: 100%; margin: 12px 0; }
-    .feed-actions { display: flex; gap: 16px; }
-    .feed-action { display: flex; align-items: center; gap: 6px; color: var(--text-secondary); cursor: pointer; }
-    .feed-action.liked { color: var(--danger); }
-    .feed-action:hover { color: var(--text); }
+    .feed { display: flex; flex-direction: column; gap: 24px; }
+    .recording-card { background: var(--bg-secondary); border-radius: 16px; padding: 20px; border: 1px solid var(--border); }
+    .recording-header { display: flex; align-items: center; gap: 12px; margin-bottom: 16px; }
+    .recording-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+    .recording-user { flex: 1; }
+    .recording-user h3 { font-size: 16px; font-weight: 600; }
+    .recording-user span { color: var(--text-secondary); font-size: 14px; }
+    .recording-title { font-size: 20px; font-weight: 700; margin-bottom: 12px; }
+    .audio-player { width: 100%; margin-bottom: 16px; }
+    .recording-actions { display: flex; gap: 16px; }
+    .action-btn { display: flex; align-items: center; gap: 6px; background: none; border: none; color: var(--text-secondary); cursor: pointer; font-size: 14px; }
+    .action-btn:hover { color: var(--text); }
+    .action-btn.liked { color: var(--error); }
+    
+    /* Record */
+    .record-screen { padding: 20px; }
+    .record-screen h1 { font-size: 32px; margin-bottom: 24px; }
+    .record-card { background: var(--bg-secondary); border-radius: 16px; padding: 32px; border: 1px solid var(--border); text-align: center; }
+    .record-btn { width: 120px; height: 120px; border-radius: 50%; background: var(--error); border: 4px solid var(--bg-tertiary); cursor: pointer; margin: 0 auto 24px; transition: transform 0.2s; }
+    .record-btn:hover { transform: scale(1.1); }
+    .record-btn.recording { animation: pulse 1s infinite; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.1); } }
+    .record-timer { font-size: 48px; font-weight: 700; margin-bottom: 24px; font-family: monospace; }
+    .upload-form { margin-top: 32px; text-align: left; }
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; margin-bottom: 8px; font-weight: 500; }
+    .form-group input, .form-group textarea { width: 100%; padding: 12px; border-radius: 8px; border: 1px solid var(--border); background: var(--bg-tertiary); color: var(--text); font-size: 16px; }
+    .form-group textarea { resize: vertical; min-height: 80px; }
+    .file-input { border: 2px dashed var(--border); padding: 32px; text-align: center; border-radius: 8px; cursor: pointer; }
+    .file-input:hover { border-color: var(--primary); }
     
     /* Profile */
-    .profile-header { text-align: center; margin-bottom: 24px; }
-    .profile-header img { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; margin-bottom: 12px; }
-    .profile-header h2 { font-size: 24px; margin-bottom: 4px; }
-    .profile-header .bio { color: var(--text-secondary); margin-bottom: 12px; }
-    .profile-stats { display: flex; justify-content: center; gap: 24px; margin-bottom: 16px; }
-    .profile-stats div { text-align: center; }
-    .profile-stats .num { font-size: 20px; font-weight: bold; }
-    .profile-stats .label { font-size: 12px; color: var(--text-secondary); }
-    .edit-profile { margin-top: 16px; }
-    .edit-profile textarea { width: 100%; padding: 12px; background: var(--bg-secondary); border: 1px solid #333; border-radius: 8px; color: var(--text); margin-bottom: 12px; }
+    .profile-header { text-align: center; margin-bottom: 32px; }
+    .profile-avatar { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; margin-bottom: 16px; border: 4px solid var(--primary); }
+    .profile-name { font-size: 28px; font-weight: 700; margin-bottom: 8px; }
+    .profile-bio { color: var(--text-secondary); margin-bottom: 16px; }
+    .profile-stats { display: flex; justify-content: center; gap: 32px; }
+    .stat { text-align: center; }
+    .stat-value { font-size: 24px; font-weight: 700; }
+    .stat-label { color: var(--text-secondary); font-size: 14px; }
     
     /* Leaderboard */
-    .leaderboard-item { display: flex; align-items: center; gap: 12px; padding: 12px; background: var(--bg-card); border-radius: 8px; margin-bottom: 8px; }
-    .leaderboard-rank { font-size: 20px; font-weight: bold; width: 40px; color: var(--primary); }
-    .leaderboard-item img { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
-    .leaderboard-item .name { font-weight: 600; }
-    .leaderboard-item .stats { color: var(--text-secondary); font-size: 12px; }
+    .leaderboard { display: flex; flex-direction: column; gap: 12px; }
+    .leaderboard-item { display: flex; align-items: center; gap: 16px; background: var(--bg-secondary); padding: 16px; border-radius: 12px; border: 1px solid var(--border); }
+    .leaderboard-rank { font-size: 24px; font-weight: 800; width: 40px; }
+    .leaderboard-rank.gold { color: #ffd700; }
+    .leaderboard-rank.silver { color: #c0c0c0; }
+    .leaderboard-rank.bronze { color: #cd7f32; }
+    .leaderboard-avatar { width: 48px; height: 48px; border-radius: 50%; object-fit: cover; }
+    .leaderboard-info { flex: 1; }
+    .leaderboard-name { font-weight: 600; }
+    .leaderboard-stats { color: var(--text-secondary); font-size: 14px; }
     
-    /* Tabs */
-    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--bg-secondary); display: flex; justify-content: space-around; padding: 12px; border-top: 1px solid #333; }
-    .bottom-nav a { color: var(--text-secondary); text-decoration: none; font-size: 12px; display: flex; flex-direction: column; align-items: center; gap: 4px; }
-    .bottom-nav a.active { color: var(--primary); }
-    .bottom-nav svg { width: 24px; height: 24px; }
-    
-    /* Loading */
-    .loading { text-align: center; padding: 40px; color: var(--text-secondary); }
-    
-    /* Empty */
-    .empty { text-align: center; padding: 40px; color: var(--text-secondary); }
+    /* Bottom Nav */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; right: 0; height: 70px; background: var(--bg-secondary); border-top: 1px solid var(--border); display: flex; align-items: center; justify-content: space-around; }
+    .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; color: var(--text-secondary); text-decoration: none; font-size: 12px; }
+    .nav-item.active { color: var(--primary); }
+    .nav-item svg { width: 24px; height: 24px; }
     
     /* Hidden */
     .hidden { display: none !important; }
+    
+    /* Loading */
+    .loading { display: flex; justify-content: center; padding: 40px; }
+    .spinner { width: 40px; height: 40px; border: 3px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
   </style>
 </head>
 <body>
   <!-- Auth Screen -->
-  <div id="auth-screen" class="auth-screen section">
+  <div id="auth-screen" class="auth-screen">
     <h1>🎤 Hype</h1>
-    <p>Record your sound. Share your vibe.</p>
-    <a href="/auth/google" class="btn btn-primary">Continue with Google</a>
+    <p>Record your sound. Share with the world.</p>
+    <a href="/auth/google" class="btn btn-primary">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" style="margin-right: 8px;"><path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+      Continue with Google
+    </a>
   </div>
 
-  <!-- Main App -->
+  <!-- App -->
   <div id="app" class="hidden">
-    <header>
+    <header class="header">
       <div class="logo">🎤 Hype</div>
-      <div class="user-menu" id="user-menu">
-        <a href="/auth/google" class="btn btn-primary">Login</a>
+      <nav class="nav">
+        <a href="#feed" class="active">Feed</a>
+        <a href="#leaderboard">Top</a>
+      </nav>
+      <div class="user-menu">
+        <a href="#record" class="btn btn-primary">+ Record</a>
+        <a href="#profile" id="user-link">
+          <img id="header-avatar" class="user-avatar" src="" alt="">
+        </a>
       </div>
     </header>
 
-    <main>
-      <!-- Record Section -->
-      <div id="record-section" class="section active">
+    <main class="main">
+      <!-- Feed -->
+      <div id="feed-view">
+        <div id="feed" class="feed"></div>
+        <div id="feed-loading" class="loading hidden"><div class="spinner"></div></div>
+      </div>
+
+      <!-- Record -->
+      <div id="record-view" class="record-screen hidden">
+        <h1>🎤 Record</h1>
         <div class="record-card">
-          <div class="record-btn" id="record-btn"></div>
-          <div class="record-status" id="record-status">Tap to record</div>
-          <audio id="audio-preview" controls class="hidden" style="width: 100%; margin: 16px 0;"></audio>
+          <button id="record-btn" class="record-btn"></button>
+          <div id="record-timer" class="record-timer">00:00</div>
+          <p id="record-status">Tap to start recording</p>
+          
+          <div class="upload-form hidden" id="upload-form">
+            <div class="form-group">
+              <label>Title</label>
+              <input type="text" id="recording-title" placeholder="My track...">
+            </div>
+            <div class="form-group">
+              <label>Description</label>
+              <textarea id="recording-desc" placeholder="Tell us about your track..."></textarea>
+            </div>
+            <button id="save-recording" class="btn btn-primary" style="width: 100%;">Save Recording</button>
+          </div>
+          
+          <div style="margin-top: 32px;">
+            <p style="margin-bottom: 16px; color: var(--text-secondary);">Or upload a file</p>
+            <input type="file" id="file-upload" accept="audio/*" class="hidden">
+            <label for="file-upload" class="file-input">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="currentColor" style="margin-bottom: 8px;"><path d="M9 16h6v-6h4l-7-7-7 7h4v6zm-4 2h14v2H5v-2z"/></svg>
+              <div>Click to upload audio file</div>
+            </label>
+          </div>
         </div>
-        <form class="upload-form hidden" id="upload-form">
-          <label>Track Title</label>
-          <input type="text" id="track-title" placeholder="My track" required>
-          <label>Description</label>
-          <textarea id="track-desc" placeholder="Tell us about your track..."></textarea>
-          <label>Genre</label>
-          <select id="track-genre">
-            <option value="Hip Hop">Hip Hop</option>
-            <option value="Rap">Rap</option>
-            <option value="R&B">R&B</option>
-            <option value="Pop">Pop</option>
-            <option value="Rock">Rock</option>
-            <option value="Electronic">Electronic</option>
-            <option value="Other">Other</option>
-          </select>
-          <button type="submit" class="btn btn-primary" style="width: 100%;">Upload Track</button>
-        </form>
       </div>
 
-      <!-- Feed Section -->
-      <div id="feed-section" class="section">
-        <div id="feed-list"></div>
+      <!-- Profile -->
+      <div id="profile-view" class="hidden">
+        <div class="profile-header">
+          <img id="profile-avatar" class="profile-avatar" src="" alt="">
+          <h1 id="profile-name" class="profile-name"></h1>
+          <p id="profile-bio" class="profile-bio"></p>
+          <div class="profile-stats">
+            <div class="stat"><div id="stat-recordings" class="stat-value">0</div><div class="stat-label">Tracks</div></div>
+            <div class="stat"><div id="stat-followers" class="stat-value">0</div><div class="stat-label">Followers</div></div>
+            <div class="stat"><div id="stat-following" class="stat-value">0</div><div class="stat-label">Following</div></div>
+          </div>
+          <button id="edit-bio-btn" class="btn btn-outline" style="margin-top: 16px;">Edit Bio</button>
+          <a href="/auth/logout" class="btn btn-outline" style="margin-top: 8px;">Logout</a>
+        </div>
+        <h2 style="margin-bottom: 16px;">My Recordings</h2>
+        <div id="profile-recordings" class="feed"></div>
       </div>
 
-      <!-- Leaderboard Section -->
-      <div id="leaderboard-section" class="section">
-        <h2 style="margin-bottom: 16px;">Top Artists</h2>
-        <div id="leaderboard-list"></div>
-      </div>
-
-      <!-- Profile Section -->
-      <div id="profile-section" class="section">
-        <div id="profile-content"></div>
+      <!-- Leaderboard -->
+      <div id="leaderboard-view" class="hidden">
+        <h1 style="margin-bottom: 24px;">🏆 Top Artists</h1>
+        <div id="leaderboard" class="leaderboard"></div>
       </div>
     </main>
 
     <nav class="bottom-nav">
-      <a href="#" data-section="record-section" class="active">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
-        Record
-      </a>
-      <a href="#" data-section="feed-section">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/></svg>
+      <a href="#feed" class="nav-item active" data-view="feed">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M3 13h8V3H3v10zm0 8h8v-6H3v6zm10 0h8V11h-8v10zm0-18v6h8V3h-8z"/></svg>
         Feed
       </a>
-      <a href="#" data-section="leaderboard-section">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
-        Top
+      <a href="#record" class="nav-item" data-view="record">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5z"/><path d="M17 11c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+        Record
       </a>
-      <a href="#" data-section="profile-section">
+      <a href="#profile" class="nav-item" data-view="profile">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z"/></svg>
         Profile
+      </a>
+      <a href="#leaderboard" class="nav-item" data-view="leaderboard">
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M7.5 21H2V9h5.5v12zm7.25-18h-5.5v18h5.5V3zM22 11h-5.5v10H22V11z"/></svg>
+        Top
       </a>
     </nav>
   </div>
@@ -191,319 +228,201 @@
     let currentUser = null;
     let mediaRecorder = null;
     let audioChunks = [];
-    let audioBlob = null;
+    let recordingStart = null;
+    let timerInterval = null;
+    let uploadedFile = null;
 
-    // Check auth
-    async function checkAuth() {
-      try {
-        const res = await fetch('/api/user');
-        const data = await res.json();
-        currentUser = data.user;
-        updateUI();
-      } catch (e) {
-        console.error(e);
-      }
-    }
-
-    function updateUI() {
-      const app = document.getElementById('app');
-      const authScreen = document.getElementById('auth-screen');
-      const userMenu = document.getElementById('user-menu');
-
-      if (currentUser) {
-        authScreen.classList.add('hidden');
-        app.classList.remove('hidden');
-        userMenu.innerHTML = `
-          <img src="${currentUser.photo}" alt="${currentUser.name}">
-          <button class="btn btn-outline" onclick="logout()">Logout</button>
-        `;
+    // Init
+    async function init() {
+      const { user } = await fetch('/api/me').then(r => r.json());
+      if (user) {
+        currentUser = user;
+        showApp();
       } else {
-        authScreen.classList.remove('hidden');
-        app.classList.add('hidden');
+        document.getElementById('auth-screen').classList.remove('hidden');
       }
     }
 
-    async function logout() {
-      await fetch('/api/logout', { method: 'POST' });
-      window.location.href = '/';
+    function showApp() {
+      document.getElementById('auth-screen').classList.add('hidden');
+      document.getElementById('app').classList.remove('hidden');
+      document.getElementById('header-avatar').src = currentUser.photo || 'data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="%23666666"><circle cx="12" cy="8" r="4"/><path d="M12 14c-4 0-8 2-8 4v2h16v-2c0-2-4-4-8-4z"/></svg>';
+      loadFeed();
+      loadLeaderboard();
     }
 
     // Navigation
-    document.querySelectorAll('.bottom-nav a').forEach(link => {
-      link.addEventListener('click', (e) => {
+    document.querySelectorAll('.nav-item, .nav a').forEach(el => {
+      el.addEventListener('click', (e) => {
         e.preventDefault();
-        const section = link.dataset.section;
-        showSection(section);
+        const view = el.getAttribute('data-view') || el.getAttribute('href').replace('#', '');
+        showView(view);
       });
     });
 
-    function showSection(sectionId) {
-      document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
-      document.querySelectorAll('.bottom-nav a').forEach(a => a.classList.remove('active'));
-      document.getElementById(sectionId).classList.add('active');
-      document.querySelector(`[data-section="${sectionId}"]`).classList.add('active');
-
-      if (sectionId === 'feed-section') loadFeed();
-      if (sectionId === 'leaderboard-section') loadLeaderboard();
-      if (sectionId === 'profile-section') loadProfile();
+    function showView(view) {
+      document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+      document.querySelector(`.nav-item[data-view="${view}"]`)?.classList.add('active');
+      
+      document.querySelectorAll('#app > main > div').forEach(el => el.classList.add('hidden'));
+      document.getElementById(`${view}-view`)?.classList.remove('hidden');
+      
+      if (view === 'feed') loadFeed();
+      if (view === 'profile') loadProfile();
+      if (view === 'leaderboard') loadLeaderboard();
     }
-
-    // Recording
-    const recordBtn = document.getElementById('record-btn');
-    const recordStatus = document.getElementById('record-status');
-    const audioPreview = document.getElementById('audio-preview');
-    const uploadForm = document.getElementById('upload-form');
-
-    recordBtn.addEventListener('click', async () => {
-      if (mediaRecorder && mediaRecorder.state === 'recording') {
-        stopRecording();
-      } else {
-        startRecording();
-      }
-    });
-
-    async function startRecording() {
-      try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = (e) => audioChunks.push(e.data);
-        mediaRecorder.onstop = () => {
-          audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
-          audioPreview.src = URL.createObjectURL(audioBlob);
-          audioPreview.classList.remove('hidden');
-          uploadForm.classList.remove('hidden');
-        };
-
-        mediaRecorder.start();
-        recordBtn.classList.add('recording');
-        recordStatus.textContent = 'Recording... Tap to stop';
-      } catch (e) {
-        alert('Could not access microphone: ' + e.message);
-      }
-    }
-
-    function stopRecording() {
-      if (mediaRecorder) {
-        mediaRecorder.stop();
-        mediaRecorder.stream.getTracks().forEach(track => track.stop());
-        recordBtn.classList.remove('recording');
-        recordStatus.textContent = 'Recording stopped';
-      }
-    }
-
-    // Upload
-    uploadForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      if (!audioBlob) return;
-
-      const formData = new FormData();
-      formData.append('audio', audioBlob, 'recording.webm');
-      formData.append('title', document.getElementById('track-title').value);
-      formData.append('description', document.getElementById('track-desc').value);
-      formData.append('genre', document.getElementById('track-genre').value);
-
-      const btn = uploadForm.querySelector('button');
-      btn.textContent = 'Uploading...';
-      btn.disabled = true;
-
-      try {
-        const res = await fetch('/api/record', {
-          method: 'POST',
-          body: formData,
-          credentials: 'include'
-        });
-        const data = await res.json();
-        if (data.recording) {
-          alert('Track uploaded!');
-          uploadForm.classList.add('hidden');
-          audioPreview.classList.add('hidden');
-          uploadForm.reset();
-          showSection('feed-section');
-        } else {
-          alert(data.error || 'Upload failed');
-        }
-      } catch (e) {
-        alert('Upload failed: ' + e.message);
-      }
-
-      btn.textContent = 'Upload Track';
-      btn.disabled = false;
-    });
 
     // Feed
     async function loadFeed() {
-      const list = document.getElementById('feed-list');
-      list.innerHTML = '<div class="loading">Loading...</div>';
+      document.getElementById('feed-loading').classList.remove('hidden');
+      const { recordings } = await fetch('/api/recordings').then(r => r.json());
+      document.getElementById('feed-loading').classList.add('hidden');
+      
+      const feed = document.getElementById('feed');
+      feed.innerHTML = recordings.map(r => createRecordingCard(r)).join('');
+    }
 
-      try {
-        const res = await fetch('/api/recordings');
-        const data = await res.json();
-
-        if (data.recordings.length === 0) {
-          list.innerHTML = '<div class="empty">No recordings yet. Be the first!</div>';
-          return;
-        }
-
-        list.innerHTML = data.recordings.map(r => `
-          <div class="feed-item">
-            <div class="feed-header">
-              <img src="${r.userPhoto}" alt="${r.userName}">
-              <div>
-                <div class="name">${r.userName}</div>
-                <div class="time">${formatTime(r.createdAt)}</div>
-              </div>
-            </div>
-            <div class="feed-title">${r.title}</div>
-            <audio controls class="feed-audio" src="${r.audioUrl}" data-id="${r.id}"></audio>
-            <div class="feed-actions">
-              <div class="feed-action ${r.liked ? 'liked' : ''}" onclick="toggleLike('${r.id}')">
-                <span>${r.liked ? '❤️' : '🤍'}</span> ${r.likes}
-              </div>
-              <div class="feed-action">
-                <span>👁️</span> ${r.plays || 0}
-              </div>
+    function createRecordingCard(r) {
+      return `
+        <div class="recording-card">
+          <div class="recording-header">
+            <img class="recording-avatar" src="${r.userPhoto || ''}" alt="">
+            <div class="recording-user">
+              <h3>${r.userName}</h3>
+              <span>${new Date(r.createdAt).toLocaleDateString()}</span>
             </div>
           </div>
-        `).join('');
+          <h2 class="recording-title">${r.title}</h2>
+          <audio controls class="audio-player" data-id="${r.id}" data-src="${r.audioUrl}">
+            <source src="${r.audioUrl}" type="audio/mpeg">
+          </audio>
+          <div class="recording-actions">
+            <button class="action-btn ${r.userLiked ? 'liked' : ''}" onclick="toggleLike('${r.id}')">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="${r.userLiked ? 'currentColor' : 'none'}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              ${r.likes}
+            </button>
+            <span class="action-btn">👁️ ${r.plays || 0}</span>
+          </div>
+        </div>
+      `;
+    }
 
-        // Track plays
-        document.querySelectorAll('.feed-audio').forEach(audio => {
-          audio.addEventListener('play', () => {
-            fetch(`/api/recordings/${audio.dataset.id}/play`, { method: 'POST' });
-          });
-        });
-      } catch (e) {
-        list.innerHTML = '<div class="empty">Failed to load feed</div>';
+    // Like
+    async function toggleLike(id) {
+      if (!currentUser) return alert('Please login first');
+      const res = await fetch(`/api/recordings/${id}/like`, { method: 'POST' });
+      const data = await res.json();
+      loadFeed();
+    }
+
+    // Record
+    const recordBtn = document.getElementById('record-btn');
+    recordBtn.addEventListener('click', toggleRecord);
+
+    async function toggleRecord() {
+      if (mediaRecorder?.state === 'recording') {
+        mediaRecorder.stop();
+        recordBtn.classList.remove('recording');
+        document.getElementById('record-status').textContent = 'Recording stopped';
+        document.getElementById('upload-form').classList.remove('hidden');
+      } else {
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
+        audioChunks = [];
+        
+        mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+        mediaRecorder.onstop = () => {
+          const blob = new Blob(audioChunks, { type: 'audio/webm' });
+          const file = new File([blob], 'recording.webm', { type: 'audio/webm' });
+          uploadedFile = file;
+        };
+        
+        mediaRecorder.start();
+        recordBtn.classList.add('recording');
+        document.getElementById('record-status').textContent = 'Recording...';
+        
+        recordingStart = Date.now();
+        timerInterval = setInterval(updateTimer, 1000);
       }
     }
 
-    async function toggleLike(id) {
-      if (!currentUser) return alert('Please login first');
-      try {
-        const res = await fetch(`/api/recordings/${id}/like`, { method: 'POST' });
-        const data = await res.json();
-        loadFeed();
-      } catch (e) {
-        console.error(e);
+    function updateTimer() {
+      const elapsed = Math.floor((Date.now() - recordingStart) / 1000);
+      const mins = String(Math.floor(elapsed / 60)).padStart(2, '0');
+      const secs = String(elapsed % 60).padStart(2, '0');
+      document.getElementById('record-timer').textContent = `${mins}:${secs}`;
+    }
+
+    // File upload
+    document.getElementById('file-upload').addEventListener('change', (e) => {
+      uploadedFile = e.target.files[0];
+      if (uploadedFile) {
+        document.getElementById('upload-form').classList.remove('hidden');
+        document.getElementById('record-status').textContent = `Selected: ${uploadedFile.name}`;
       }
+    });
+
+    // Save recording
+    document.getElementById('save-recording').addEventListener('click', async () => {
+      if (!uploadedFile) return alert('Please record or upload audio first');
+      
+      const formData = new FormData();
+      formData.append('audio', uploadedFile);
+      formData.append('title', document.getElementById('recording-title').value || 'Untitled');
+      formData.append('description', document.getElementById('recording-desc').value);
+      
+      const res = await fetch('/api/recordings', {
+        method: 'POST',
+        body: formData
+      });
+      
+      if (res.ok) {
+        alert('Recording saved!');
+        uploadedFile = null;
+        document.getElementById('upload-form').classList.add('hidden');
+        document.getElementById('record-timer').textContent = '00:00';
+        document.getElementById('record-status').textContent = 'Tap to start recording';
+        showView('feed');
+      }
+    });
+
+    // Profile
+    async function loadProfile() {
+      const { user } = await fetch(`/api/user/${currentUser.id}`).then(r => r.json());
+      document.getElementById('profile-avatar').src = user.photo || '';
+      document.getElementById('profile-name').textContent = user.name;
+      document.getElementById('profile-bio').textContent = user.bio || 'No bio yet';
+      document.getElementById('stat-recordings').textContent = user.recordings?.length || 0;
+      document.getElementById('stat-followers').textContent = user.followers?.length || 0;
+      document.getElementById('stat-following').textContent = user.following?.length || 0;
+      
+      const { recordings } = await fetch(`/api/recordings/user/${currentUser.id}`).then(r => r.json());
+      document.getElementById('profile-recordings').innerHTML = recordings.map(r => createRecordingCard(r)).join('');
     }
 
     // Leaderboard
     async function loadLeaderboard() {
-      const list = document.getElementById('leaderboard-list');
-      list.innerHTML = '<div class="loading">Loading...</div>';
-
-      try {
-        const res = await fetch('/api/leaderboard');
-        const data = await res.json();
-
-        if (data.leaderboard.length === 0) {
-          list.innerHTML = '<div class="empty">No artists yet</div>';
-          return;
-        }
-
-        list.innerHTML = data.leaderboard.map((u, i) => `
-          <div class="leaderboard-item" onclick="viewProfile('${u.id}')">
-            <div class="leaderboard-rank">#${i + 1}</div>
-            <img src="${u.photo}" alt="${u.name}">
-            <div style="flex: 1;">
-              <div class="name">${u.name}</div>
-              <div class="stats">${u.recordingsCount} tracks • ${u.followersCount} followers</div>
-            </div>
+      const { leaderboard } = await fetch('/api/leaderboard').then(r => r.json());
+      const html = leaderboard.map((u, i) => `
+        <div class="leaderboard-item">
+          <div class="leaderboard-rank ${i === 0 ? 'gold' : i === 1 ? 'silver' : i === 2 ? 'bronze' : ''}">#${i + 1}</div>
+          <img class="leaderboard-avatar" src="${u.photo || ''}" alt="">
+          <div class="leaderboard-info">
+            <div class="leaderboard-name">${u.name}</div>
+            <div class="leaderboard-stats">${u.recordings} tracks • ${u.followers} followers</div>
           </div>
-        `).join('');
-      } catch (e) {
-        list.innerHTML = '<div class="empty">Failed to load</div>';
-      }
+        </div>
+      `).join('');
+      document.getElementById('leaderboard').innerHTML = html || '<p style="text-align:center;color:var(--text-secondary)">No artists yet</p>';
     }
 
-    // Profile
-    async function loadProfile() {
-      const content = document.getElementById('profile-content');
-      if (!currentUser) {
-        content.innerHTML = '<div class="empty">Please login</div>';
-        return;
-      }
+    // Hash routing
+    window.addEventListener('hashchange', () => {
+      const view = location.hash.replace('#', '') || 'feed';
+      showView(view);
+    });
 
-      try {
-        const res = await fetch(`/api/users/${currentUser.id}`);
-        const data = await res.json();
-        const p = data.profile;
-        const recordings = data.recordings;
-
-        content.innerHTML = `
-          <div class="profile-header">
-            <img src="${p.photo}" alt="${p.name}">
-            <h2>${p.name}</h2>
-            <p class="bio">${p.bio || 'No bio yet'}</p>
-            <div class="profile-stats">
-              <div><div class="num">${p.recordingsCount}</div><div class="label">Tracks</div></div>
-              <div><div class="num">${p.followers}</div><div class="label">Followers</div></div>
-              <div><div class="num">${p.following}</div><div class="label">Following</div></div>
-            </div>
-            <button class="btn btn-outline" onclick="showEditProfile()">Edit Profile</button>
-          </div>
-          <div class="edit-profile hidden" id="edit-profile">
-            <textarea id="bio-input" placeholder="Write your bio...">${p.bio || ''}</textarea>
-            <button class="btn btn-primary" onclick="saveProfile()">Save</button>
-          </div>
-          <h3 style="margin: 24px 0 16px;">My Tracks</h3>
-          ${recordings.length === 0 ? '<div class="empty">No tracks yet</div>' : recordings.map(r => `
-            <div class="feed-item">
-              <div class="feed-title">${r.title}</div>
-              <audio controls class="feed-audio" src="${r.audioUrl}"></audio>
-              <div class="feed-actions">
-                <div class="feed-action"><span>❤️</span> ${r.likes}</div>
-                <div class="feed-action"><span>👁️</span> ${r.plays || 0}</div>
-              </div>
-            </div>
-          `).join('')}
-        `;
-      } catch (e) {
-        content.innerHTML = '<div class="empty">Failed to load profile</div>';
-      }
-    }
-
-    function showEditProfile() {
-      document.getElementById('edit-profile').classList.remove('hidden');
-    }
-
-    async function saveProfile() {
-      const bio = document.getElementById('bio-input').value;
-      try {
-        await fetch('/api/user/profile', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ bio }),
-          credentials: 'include'
-        });
-        loadProfile();
-      } catch (e) {
-        alert('Failed to save');
-      }
-    }
-
-    function viewProfile(userId) {
-      window.location.href = `/profile.html?user=${userId}`;
-    }
-
-    // Utils
-    function formatTime(dateStr) {
-      const date = new Date(dateStr);
-      const now = new Date();
-      const diff = now - date;
-      const mins = Math.floor(diff / 60000);
-      const hours = Math.floor(diff / 3600000);
-      const days = Math.floor(diff / 86400000);
-      if (mins < 60) return `${mins}m ago`;
-      if (hours < 24) return `${hours}h ago`;
-      return `${days}d ago`;
-    }
-
-    // Init
-    checkAuth();
+    init();
   </script>
 </body>
 </html>
