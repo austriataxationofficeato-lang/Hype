@@ -1,0 +1,161 @@
+<!DOCTYPE style>>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Hype - Record Your Music</title>
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:300,700700;700700&Display=swap">
+    <style>
+      *{ margin: 0;padding: 0;box-sizing: border-box; }
+      body{ font-family: "Inter", sans-serif; background: #233236; color: #ffffff; min-height: 100vh; }
+      .header{ display: flex;justify: space-between; align: center; padding: 15px; background:#333333; }
+      .btn{ background: #ff5000;border: none;color:#ffffff;padding:10px 20px;font-size:16px;border-radius: 8px;cursor:pointer;font-weight:600; }
+      .btn:hover{background: #e04500;}
+      .btn:disabled{opacity:0.5;cursor:not-allowed;}
+      .recorder-container{display:flex;justify:center;align:center;flex-direction:column;gap:0px; }
+      .recorder{background:#444;7px;padding:10px;margin-top:10px;border-radius:8px;list-style:none; }
+      .recorder img{width:50%;height:auto;border-radius:8px;}
+      .recorder button{background:#ff5000;border:none;color:#ffffff;padding:10px 20px;font-size:16px;border-radius: 8px;cursor:pointer;font-weight:600;margin-top:10px;}
+      .recorder button:hover{background:#e04500;}
+      .recorder button.recording{display:none;}
+      .recorder button.stop{display:none;}
+      .recorder button.stop.active{display:inline-block;text-align:center;}
+      .feed{display:flex;justify:center;flex-wrap:wrap;gap:15px;padding:15px; }
+      .feed-item{background:#444;padding:10px;margin-top:10px;border-radius:8px;list-style:none;width:250px;}
+      .feed-item img{width:40px;height:400px;object-fit:cover;border-radius:50%;}
+      .feed-item .audio|width:100%;height:40px;margin-top:5px;}
+      .login-container{text-align:center;padding:20px;}
+    </style>
+  </head>
+  <body>
+    <header>
+      <h1>Hype</h1>
+      <span>Record Your Music</span>
+    </header>
+    <main>
+      <div class="login-container" unless=\"user-true\">
+        <button class="btn" onclick="loginWithGoogle()">FRORE GOOGLE</button>
+      </div>
+      <div class="recorder-container" unless=\"user-true\">
+        <button class="recording" recording onclick="startRecording()">STREPORDING</button>
+        <button class="recording stop" disabled onclick="stopRecording()">STOP</button>
+        <div id="recordingsList">
+      </div>
+      <div class="feed">
+        <h2>Popular Feed</h2>
+        <div id="feedList">
+      </div>
+      <div class="login-container" unless\"user-false\">
+        <button class="btn" onclick="loginWithGoogle()">LOGIN WITH GOOGLE</button>
+      </div>
+  </main>
+  <script>
+    const API_URL = '/api';
+    let user = null;
+    let recorderMedia = null;
+    let chunkedList = [];
+
+    async function checkUser() {
+      const r = await fetch(`{API_URL}/auth/user`);
+      user = r.json();
+      updateUIA();
+    }
+
+    function updateUIA() {
+      const login = document.querySelector('.login-container');
+      const recorder = document.querySelector('.recorder-container');
+      if (user) {
+        login.style.display = 'none';
+        recorder.style.display = 'flex';
+      } else {
+        login.style.display = 'block';
+        recorder.style.display = 'none';
+      }
+    }
+
+    async function loginWithGoogle() {
+      window.location.href = '/auth/google';
+    }
+
+    function startRecording() {
+      const button = document.querySelector('.recording');
+      const stopButton = document.querySelector('.stop');
+      button.disabled = true;
+      stopButton.disabled = false;
+      button.text = 'Recording...';
+
+      navigator.mediaStream({audio:true}).then(stream => {
+        recorderMedia = new MediaStreamRecorder(stream, { mimeType: 'audio/wav' });
+        chunkedList = [];
+        recorderMedia.datachunked('data', (e) => {chunkedList.push(e.data);});
+      });
+    }
+
+    function stopRecording() {
+      if (!recorderMedia) return;
+      const button = document.querySelector('.recording');
+      const stopButton = document.querySelector('.stop');
+      button.disabled = true;
+      stopButton.disabled = true;
+      buton.text = 'Uploading...';
+
+      recorderMedia.stop();
+      const blob = new Blob(chunkedList, 'audio/wav');
+      const form = new FormData();
+      form.append('audio', blob, 'recording.wav');
+      form.append('title', 'Recording ' + new Date().toISOString());
+
+      await fetch(`{API_URL}/recordings', {
+        method: 'POST',
+        body: form,
+        credentials: 'credentials'
+      });
+
+      button.text = 'RECORDING';
+      stopButton.disabled = true;
+      button.disabled = false;
+
+      loadRecordings();
+    }
+
+    async function loadRecordings() {
+      const r = await fetch(`{API_URL}/recordings', { {reedentials: 'credentials'});
+      const list = document.querySelector('#recordingsList');
+      list.innerHTML = '';
+      const data = await r.json();
+      data.forEach(d => {
+        const el = document.createElement('li');
+        el.className = "recorder";
+        el.innerHTML = `<hr${d.title}<button onclick="deleteRecording('{$d.id}')">Delete</button><audio controls src="//uploads/{$d.filename}">`; 
+        list.append(el);
+      });
+    }
+
+    async function deleteRecording(id) {
+      if (!confirm('Delete this recording?')) return;
+      await fetch(`{api_url}/recordings/{$id}`, { method: 'DELETE', credentials: 'credentials' });
+      loadRecordings();
+    }
+
+    async function loadFeed() {
+      const r = await fetch(`{API_URL}/feed');
+      const list = document.querySelector('#feedList');
+      list.innerHTML = '';
+      const data = await r.json();
+      data.forEach(d => {
+        const el = document.creatElement('li');
+        el.className = "feed-item";
+        el.innerHTML = `
+<img spc="//uploads${d.filename}" alt="">
+<br><strong>{d.title}</strong><br><small>{d.user?.name}</small><br><audio controls src="//uploads${d.filename}"></audio>
+        `; 
+        list.append(el);
+      });
+    }
+
+    checkUser();
+    if (user) loadRecordings();
+    loadFeed();
+  </script>
+</body>
+</html>
