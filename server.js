@@ -15,36 +15,40 @@ const PORT = process.env.PORT || 3000;
 // Data directory
 const DATA_DIR = path.join(__dirname, 'data');
 const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads');
-if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-
-// JSON file helpers
-function loadJSON(file) {
-  try {
-    if (fs.existsSync(file)) return JSON.parse(fs.readFileSync(file, 'utf8'));
-  } catch (e) { console.log('Loading fresh:', file); }
-  return null;
-}
-function saveJSON(file, data) {
-  fs.writeFileSync(file, JSON.stringify(data, null, 2));
-}
-
-// Database files
 const USERS_FILE = path.join(DATA_DIR, 'users.json');
 const RECORDINGS_FILE = path.join(DATA_DIR, 'recordings.json');
 const LIKES_FILE = path.join(DATA_DIR, 'likes.json');
 
-// Initialize databases
-let users = loadJSON(USERS_FILE) || {};
-let recordings = loadJSON(RECORDINGS_FILE) || [];
-let likes = loadJSON(LIKES_FILE) || {}; // { recordingId: [userId1, userId2...] }
+// Create directories
+[DATA_DIR, UPLOADS_DIR].forEach(dir => {
+  if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+});
+
+// Load data
+function loadData(filePath, defaultData) {
+  try {
+    if (fs.existsSync(filePath)) {
+      return JSON.parse(fs.readFileSync(filePath, 'utf8'));
+    }
+  } catch (e) { console.log('Loading fresh:', filePath); }
+  return defaultData;
+}
+
+function saveData(filePath, data) {
+  fs.writeFileSync(filePath, JSON.stringify(data, null, 2));
+}
+
+// Data stores
+const users = loadData(USERS_FILE, {});
+const recordings = loadData(RECORDINGS_FILE, []);
+const likes = loadData(LIKES_FILE, {}); // { recordingId: [userId, ...] }
 
 // Multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => cb(null, UPLOADS_DIR),
   filename: (req, file, cb) => cb(null, `${uuidv4}${path.extname(file.originalname)}`)
 });
-const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } }); // 50MB
+const upload = multer({ storage, limits: { fileSize: 50 * 1024 * 1024 } });
 
 // Middleware
 app.use(cors({ origin: process.env.FRONTEND_URL || '*', credentials: true }));
@@ -58,7 +62,7 @@ app.use(session({
 app.use(passport.initialize());
 app.use(passport.session());
 
-// Passport config
+// Passport
 passport.serializeUser((user, done) => done(null, user.id));
 passport.deserializeUser((id, done) => done(null, users[id]));
 
@@ -77,13 +81,14 @@ if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
         email: profile.emails?.[0]?.value,
         photo: profile.photos?.[0]?.value,
         bio: '',
+        recordings: [],
+        likes: [],
         followers: [],
         following: [],
-        recordings: [],
         createdAt: new Date().toISOString()
       };
       users[profile.id] = user;
-      saveJSON(USERS_FILE, users);
+      saveData(USERS_FILE, users);
     }
     done(null, user);
   }));
@@ -94,211 +99,157 @@ app.get('/auth/google', passport.authenticate('google', { scope: ['profile', 'em
 app.get('/auth/google/callback', passport.authenticate('google', { failureRedirect: '/?error=auth' }),
   (req, res) => res.redirect('/'));
 
+app.get('/auth/logout', (req, res) => {
+  req.logout(() => res.redirect('/'));
+});
+
 // API routes
-
-// Get current user
-app.get('/api/user', (req, res) => {
-  if (req.isAuthenticated()) {
-    const u = users[req.user.id];
-    res.json({ user: { ...u, recordings: undefined } });
-  } else {
-    res.json({ user: null });
-  }
+app.get('/api/me', (req, res) => {
+  if (!req.isAuthenticated()) return res.json({ user: null });
+  const user = { ...req.user };
+  delete user.email; // Privacy
+  res.json({ user });
 });
 
-// Logout
-app.post('/api/logout', (req, res) => {
-  req.logout(() => res.json({ success: true }));
+app.get('/api/user/:id', (req, res) => {
+  const user = users[req.params.id];
+  if (!user) return res.status(404).json({ error: 'User not found' });
+  const publicUser = {
+    id: user.id,
+    name: user.name,
+    photo: user.photo,
+    bio: user.bio,
+    recordings: user.recordings,
+    followers: user.followers,
+    following: user.following,
+    createdAt: user.createdAt
+  };
+  res.json({ user: publicUser });
 });
 
-// Get all recordings (feed)
+app.put('/api/profile', (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  const { bio } = req.body;
+  users[req.user.id].bio = bio || '';
+  saveData(USERS_FILE, users);
+  res.json({ success: true, user: users[req.user.id] });
+});
+
 app.get('/api/recordings', (req, res) => {
-  const feed = recordings.map(r => {
-    const user = users[r.userId];
-    const recordingLikes = likes[r.id] || [];
-    return {
+  const allRecordings = recordings
+    .map(r => ({
       ...r,
       audioUrl: `/uploads/${r.filename}`,
-      userName: user?.name || 'Unknown',
-      userPhoto: user?.photo || '',
-      likes: recordingLikes.length,
-      liked: req.isAuthenticated() ? recordingLikes.includes(req.user.id) : false
-    };
-  }).sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  res.json({ recordings: feed });
+      likes: likes[r.id]?.length || 0,
+      userLiked: req.isAuthenticated() && likes[r.id]?.includes(req.user.id)
+    }))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json({ recordings: allRecordings });
 });
 
-// Get single recording
-app.get('/api/recordings/:id', (req, res) => {
-  const r = recordings.find(rec => rec.id === req.params.id);
-  if (!r) return res.status(404).json({ error: 'Not found' });
-  const user = users[r.userId];
-  const recordingLikes = likes[r.id] || [];
-  res.json({
-    recording: {
+app.get('/api/recordings/user/:userId', (req, res) => {
+  const userRecordings = recordings
+    .filter(r => r.userId === req.params.userId)
+    .map(r => ({
       ...r,
       audioUrl: `/uploads/${r.filename}`,
-      userName: user?.name || 'Unknown',
-      userPhoto: user?.photo || '',
-      likes: recordingLikes.length,
-      liked: req.isAuthenticated() ? recordingLikes.includes(req.user.id) : false
-    }
-  });
+      likes: likes[r.id]?.length || 0
+    }))
+    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  res.json({ recordings: userRecordings });
 });
 
-// Upload recording
-app.post('/api/record', upload.single('audio'), (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-  if (!req.file) {
-    return res.status(400).json({ error: 'No audio file' });
-  }
+app.post('/api/recordings', upload.single('audio'), (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  if (!req.file) return res.status(400).json({ error: 'No audio file' });
 
   const recording = {
     id: uuidv4(),
     userId: req.user.id,
+    userName: req.user.name,
+    userPhoto: req.user.photo,
     filename: req.file.filename,
-    title: req.body.title || 'Untitled Track',
+    title: req.body.title || 'Untitled',
     description: req.body.description || '',
-    genre: req.body.genre || 'Hip Hop',
     plays: 0,
     createdAt: new Date().toISOString()
   };
 
   recordings.push(recording);
-  saveJSON(RECORDINGS_FILE, recordings);
+  saveData(RECORDINGS_FILE, recordings);
 
   users[req.user.id].recordings.push(recording.id);
-  saveJSON(USERS_FILE, users);
+  saveData(USERS_FILE, users);
 
   res.json({ recording: { ...recording, audioUrl: `/uploads/${recording.filename}` } });
 });
 
-// Like/unlike recording
 app.post('/api/recordings/:id/like', (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  const recordingId = req.params.id;
+  const userId = req.user.id;
 
-  const r = recordings.find(rec => rec.id === req.params.id);
-  if (!r) return res.status(404).json({ error: 'Not found' });
-
-  if (!likes[r.id]) likes[r.id] = [];
-  const userLikes = likes[r.id];
-  const idx = userLikes.indexOf(req.user.id);
-
+  if (!likes[recordingId]) likes[recordingId] = [];
+  
+  const idx = likes[recordingId].indexOf(userId);
   if (idx > -1) {
-    userLikes.splice(idx, 1);
+    likes[recordingId].splice(idx, 1); // Unlike
   } else {
-    userLikes.push(req.user.id);
+    likes[recordingId].push(userId); // Like
   }
-  likes[r.id] = userLikes;
-  saveJSON(LIKES_FILE, likes);
+  saveData(LIKES_FILE, likes);
 
-  res.json({ likes: userLikes.length, liked: idx === -1 });
+  res.json({ likes: likes[recordingId].length, userLiked: idx === -1 });
 });
 
-// Get user profile
-app.get('/api/users/:id', (req, res) => {
-  const user = users[req.params.id];
-  if (!user) return res.status(404).json({ error: 'User not found' });
-
-  const userRecordings = recordings
-    .filter(r => r.userId === user.id)
-    .map(r => {
-      const recordingLikes = likes[r.id] || [];
-      return {
-        ...r,
-        audioUrl: `/uploads/${r.filename}`,
-        likes: recordingLikes.length
-      };
-    })
-    .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-  res.json({
-    profile: {
-      id: user.id,
-      name: user.name,
-      photo: user.photo,
-      bio: user.bio,
-      followers: user.followers?.length || 0,
-      following: user.following?.length || 0,
-      recordingsCount: userRecordings.length,
-      createdAt: user.createdAt
-    },
-    recordings: userRecordings
-  });
+app.post('/api/recordings/:id/play', (req, res) => {
+  const recording = recordings.find(r => r.id === req.params.id);
+  if (recording) {
+    recording.plays = (recording.plays || 0) + 1;
+    saveData(RECORDINGS_FILE, recordings);
+  }
+  res.json({ success: true });
 });
 
-// Update user profile
-app.put('/api/user/profile', (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
+app.post('/api/follow/:userId', (req, res) => {
+  if (!req.isAuthenticated()) return res.status(401).json({ error: 'Not authenticated' });
+  const targetId = req.params.userId;
+  const userId = req.user.id;
+  
+  if (targetId === userId) return res.status(400).json({ error: 'Cannot follow yourself' });
+  
+  const targetUser = users[targetId];
+  const currentUser = users[userId];
+  
+  if (!targetUser || !currentUser) return res.status(404).json({ error: 'User not found' });
 
-  const { bio, name } = req.body;
-  if (bio !== undefined) users[req.user.id].bio = bio;
-  if (name !== undefined) users[req.user.id].name = name;
-  saveJSON(USERS_FILE, users);
-
-  res.json({ success: true, user: users[req.user.id] });
-});
-
-// Follow/unfollow user
-app.post('/api/users/:id/follow', (req, res) => {
-  if (!req.isAuthenticated()) {
-    return res.status(401).json({ error: 'Not authenticated' });
-  }
-  if (req.params.id === req.user.id) {
-    return res.status(400).json({ error: 'Cannot follow yourself' });
-  }
-
-  const targetUser = users[req.params.id];
-  if (!targetUser) return res.status(404).json({ error: 'User not found' });
-
-  const currentUser = users[req.user.id];
-  if (!currentUser.following) currentUser.following = [];
-  if (!targetUser.followers) targetUser.followers = [];
-
-  const idx = currentUser.following.indexOf(req.params.id);
+  const idx = currentUser.following.indexOf(targetId);
   if (idx > -1) {
     currentUser.following.splice(idx, 1);
-    targetUser.followers = targetUser.followers.filter(f => f !== req.user.id);
+    targetUser.followers.splice(targetUser.followers.indexOf(userId), 1);
   } else {
-    currentUser.following.push(req.params.id);
-    targetUser.followers.push(req.user.id);
+    currentUser.following.push(targetId);
+    targetUser.followers.push(userId);
   }
-
-  saveJSON(USERS_FILE, users);
-  res.json({ success: true, following: currentUser.following.includes(req.params.id) });
+  
+  saveData(USERS_FILE, users);
+  res.json({ following: currentUser.following.includes(targetId) });
 });
 
-// Get leaderboard
 app.get('/api/leaderboard', (req, res) => {
   const leaderboard = Object.values(users)
     .map(u => ({
       id: u.id,
       name: u.name,
       photo: u.photo,
-      recordingsCount: u.recordings?.length || 0,
-      followersCount: u.followers?.length || 0
+      recordings: u.recordings?.length || 0,
+      followers: u.followers?.length || 0
     }))
-    .sort((a, b) => b.followersCount - a.followersCount)
-    .slice(0, 50);
+    .sort((a, b) => b.followers - a.followers)
+    .slice(0, 20);
   res.json({ leaderboard });
 });
 
-// Increment play count
-app.post('/api/recordings/:id/play', (req, res) => {
-  const r = recordings.find(rec => rec.id === req.params.id);
-  if (!r) return res.status(404).json({ error: 'Not found' });
-  r.plays = (r.plays || 0) + 1;
-  saveJSON(RECORDINGS_FILE, recordings);
-  res.json({ success: true });
-});
-
-// Serve frontend
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });
